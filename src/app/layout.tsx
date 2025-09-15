@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import SessionProvider from "@/components/SessionProvider";
+import ReduxProvider from "@/components/ReduxProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "B2B Portal",
-  description: "B2B Portal with OTP Authentication",
+  description: "B2B Portal with Email/Password Authentication",
 };
 
 export default function RootLayout({
@@ -28,9 +28,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SessionProvider>
+        <ReduxProvider>
           {children}
-        </SessionProvider>
+        </ReduxProvider>
       </body>
     </html>
   );

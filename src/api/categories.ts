@@ -1,3 +1,6 @@
+
+import api from "@/lib/axios";
+
 // Defines the structure for a single option within an attribute dropdown or list.
 export interface Option {
   value: string;
@@ -84,7 +87,7 @@ export interface ServiceCategory {
 export interface Address {
   id: string;
   b2b_customer_id: string;
-  address_type: "store" | "office";
+  address_type: "store" | "branch" | "warehouse" | "office" | "service_location";
   store_name: string;
   store_code: string;
   contact_person: string;
@@ -103,6 +106,26 @@ export interface Address {
   updated_at: number;
 }
 
+// Defines the structure for adding a new address.
+export interface AddAddressRequest {
+  addressType: "store" | "branch" | "warehouse" | "office" | "service_location";
+  storeName: string;
+  storeCode: string;
+  contactPerson: string;
+  contactPhone: string;
+  addressLine1: string;
+  addressLine2?: string;
+  landmark?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  latitude?: string;
+  longitude?: string;
+  isPrimary?: boolean;
+  isActive?: boolean;
+  b2b_customer_id: string;
+}
+
 // Defines the top-level structure of the entire API response.
 export interface ApiResponse {
   success: boolean;
@@ -116,23 +139,42 @@ export interface AddressApiResponse {
   data: Address[];
 }
 
+// Defines the structure for the add address API response.
+export interface AddAddressResponse {
+  status: boolean;
+  message: string;
+  data?: Address;
+}
+
+// Defines the structure for slot timing data.
+export interface SlotTimingData {
+  currentDayAvailable: boolean;
+  availableStartSlotHour: number;
+  timeSlotStartDate: number;
+  timeSlotStartMonth: number;
+  nextslotstart: number;
+  nextslotend: number;
+  timeSlotEndHour: number;
+  timeSlotStartYear: number;
+  timeSlotEndDateString: string;
+}
+
+
+
+// Defines the structure for the slot timing API response.
+export interface SlotTimingApiResponse {
+  status: boolean;
+  message: string;
+  data: SlotTimingData;
+}
+
 
 export async function getCategories(): Promise<ApiResponse> {
     try{
         // Use fetch instead of axios to match the working login pattern
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001/'}b2b/categories`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include', // Include cookies for authentication
-        });
+        const response = await api.get('b2b/categories');
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
+        const data = await response.data;
         return data;
     } catch (error) {
         console.error('Error fetching categories:', error);
@@ -143,22 +185,201 @@ export async function getCategories(): Promise<ApiResponse> {
 export async function getAddress(): Promise<AddressApiResponse> {
     try{
         // Use fetch instead of axios to match the working login pattern
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001/'}b2b/get-address`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include', // Include cookies for authentication
-        });
+        const response = await api.get('b2b/get-address');
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
+        const data = await response.data;
         return data;
     } catch (error) {
         console.error('Error fetching address:', error);
+        throw error;
+    }
+}
+
+export async function slotTiming(): Promise<SlotTimingApiResponse> {
+    try{
+        // Use fetch instead of axios to match the working login pattern
+        const response = await api.get('b2b/provider/slots');
+
+        const data = await response.data;
+        return data;
+    } catch (error) {
+        console.error('Error fetching slot timing:', error);
+        throw error;
+    }
+}
+
+export async function addAddress(addressData: AddAddressRequest): Promise<AddAddressResponse> {
+    try {
+        const response = await api.post<AddAddressResponse>('b2b/add-address', addressData);
+        return response.data;
+    } catch (error) {
+        console.error('Error adding address:', error);
+        throw error;
+    }
+}
+
+// Approval Flow Interfaces
+export interface B2BBooking {
+    id: string;
+    order_number: string;
+    service_name: string;
+    locationId: number | null;
+}
+
+export interface ApprovalFlowItem {
+    id: number;
+    orderId: number;
+    step_number: number;
+    current_assignee_user_id: number;
+    status: "pending" | "approved" | "rejected";
+    escalation_level: number;
+    due_at: string;
+    acted_by_user_id: number | null;
+    acted_at: string | null;
+    remarks: string | null;
+    policy_id: number;
+    locationId: number;
+    createdAt: string;
+    updatedAt: string;
+    B2BBooking: B2BBooking[];
+}
+
+export interface ApprovalFlowResponse {
+    success: boolean;
+    data: ApprovalFlowItem[];
+}
+
+export interface ApprovalActionRequest {
+    approvalId: number;
+    action: "approve" | "reject";
+    remarks?: string;
+}
+
+export interface ApprovalActionResponse {
+    success: boolean;
+    message: string;
+}
+
+// Get pending approvals
+export async function getApprovalFlow(): Promise<ApprovalFlowResponse> {
+    try {
+        const response = await api.get<ApprovalFlowResponse>('b2b/start-approval-flow');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching approval flow:', error);
+        throw error;
+    }
+}
+
+// Approve or reject an approval
+export async function handleApprovalAction(actionData: ApprovalActionRequest): Promise<ApprovalActionResponse> {
+    try {
+        const response = await api.post<ApprovalActionResponse>('b2b/approval-action', actionData);
+        return response.data;
+    } catch (error) {
+        console.error('Error handling approval action:', error);
+        throw error;
+    }
+}
+
+// Orders Interfaces
+export interface B2BApproval {
+    id: number;
+    orderId: number;
+    step_number: number;
+    current_assignee_user_id: number;
+    status: "pending" | "approved" | "rejected";
+    escalation_level: number;
+    due_at: string;
+    acted_by_user_id: number | null;
+    acted_at: string | null;
+    remarks: string | null;
+    policy_id: number;
+    locationId: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface B2BOrder {
+    id: string;
+    order_number: string;
+    service_name: string;
+    service_description: string;
+    service_type: string;
+    custom_price: string;
+    quantity: number;
+    total_amount: string;
+    service_date: string;
+    service_time: string;
+    service_address: string;
+    status: "pending" | "confirmed" | "completed" | "cancelled";
+    payment_status: "pending" | "paid" | "failed";
+    payment_method: string;
+    invoice_status: "pending" | "generated" | "sent";
+    b2b_status: "draft" | "submitted" | "approved" | "rejected";
+    notes: string;
+    created_at: number;
+    updated_at: number;
+    b2b_approvals: B2BApproval | null;
+}
+
+export interface OrdersResponse {
+    success: boolean;
+    data: B2BOrder[];
+}
+
+// Get B2B orders
+export async function getOrders(): Promise<OrdersResponse> {
+    try {
+        const response = await api.get<OrdersResponse>('b2b/booking/get-order');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching orders:', error);
+        throw error;
+    }
+}
+
+// Current User Interfaces
+export interface CurrentUser {
+    id: string;
+    roleId: string;
+    locationId: string;
+    manager_user_id: string;
+    company_name: string;
+    contact_person: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    pincode: string;
+    gst_number: string;
+    pan_number: string | null;
+    credit_days: number;
+    payment_terms: string;
+    payment_method_preference: string;
+    late_payment_fee_percentage: string;
+    credit_limit: string;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CurrentUserResponse {
+    status: boolean;
+    message: string;
+    data: CurrentUser;
+}
+
+// Get current user from token
+export async function getCurrentUserToken(): Promise<CurrentUserResponse> {
+    try {
+        const response = await api.get<CurrentUserResponse>('b2b/get-current-token');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching current user:', error);
         throw error;
     }
 }
