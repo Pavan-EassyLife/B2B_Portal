@@ -3,7 +3,8 @@ import api from "@/lib/axios";
 
 // Defines the structure for a single option within an attribute dropdown or list.
 export interface Option {
-  value: string;
+  id?: number;
+  value: string | number;
 }
 
 // Defines the structure for a service segment.

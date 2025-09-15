@@ -1,6 +1,6 @@
 import axios from 'axios'
 import Cookies from 'js-cookie'
-import { LoginRequest, LoginResponse, User, B2BUser } from '@/types/auth'
+import { LoginRequest, LoginResponse, B2BUser } from '@/types/auth'
 import { getCurrentUserToken, CurrentUser } from '@/api/categories'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001/'

@@ -75,13 +75,11 @@ export default function AuthGuard({ children, fallback }: AuthGuardProps) {
               </div>
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  {user?.image && (
-                    <img
-                      src={user.image}
-                      alt="Profile"
-                      className="w-8 h-8 rounded-full"
-                    />
-                  )}
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white font-semibold text-sm">
+                      {user?.contact_person?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
+                  </div>
                   <div className="text-gray-700">
                     <div className="font-medium">
                       Welcome, {user?.contact_person || user?.name}

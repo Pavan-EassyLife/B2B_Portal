@@ -406,15 +406,15 @@ export default function DashboardPage() {
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className={`w-8 h-8 ${user?.is_es_gold ? 'bg-yellow-500' : 'bg-gray-400'} rounded-full flex items-center justify-center`}>
+                    <div className={`w-8 h-8 ${user?.status === 'active' ? 'bg-green-500' : 'bg-gray-400'} rounded-full flex items-center justify-center`}>
                       <span className="text-white font-semibold">★</span>
                     </div>
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">Membership</dt>
+                      <dt className="text-sm font-medium text-gray-500 truncate">Account Status</dt>
                       <dd className="text-lg font-medium text-gray-900">
-                        {user?.is_es_gold ? 'Gold Member' : 'Regular'}
+                        {user?.status === 'active' ? 'Active' : 'Inactive'}
                       </dd>
                     </dl>
                   </div>
@@ -717,14 +717,14 @@ export default function DashboardPage() {
                           ?.attributes?.filter(attr =>
                             attr.subcategory_id === orderForm.subcategoryId || attr.subcategory_id === null
                           )?.filter(attr => attr.id === orderForm.filterAttributeId)?.flatMap(attr => attr.options.map(option => ({
-                            value: option.id,
-                            label: option.value
+                            value: option.id?.toString() || option.value.toString(),
+                            label: option.value.toString()
                           }))) || []
                       : orderForm.categoryId
                       ? categories
                           .find(cat => cat.id === orderForm.categoryId)
                           ?.attributes?.filter(attr => attr.subcategory_id === null)?.map(attr => ({
-                            value: attr.id,
+                            value: attr.id.toString(),
                             label: attr.name
                           })) || []
                       : []
