@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppDispatch, useAppSelector } from '@/store'
 import { logoutUser } from '@/store/authSlice'
+import toast from 'react-hot-toast'
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -41,14 +42,17 @@ export default function AuthGuard({ children, fallback }: AuthGuardProps) {
 
     const handleSignOut = async () => {
       try {
+        toast.loading('Signing out...', { id: 'logout' })
         await dispatch(logoutUser())
+        toast.success('Signed out successfully', { id: 'logout' })
         router.push('/login')
       } catch (error) {
         console.error('Logout error:', error)
+        toast.error('Error signing out, but redirecting anyway', { id: 'logout' })
         // Force redirect even if logout fails
         router.push('/login')
       }
-    } 
+    }
     
     // const handleSignOut = async () => {
     //   try {

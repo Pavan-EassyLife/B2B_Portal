@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api'
+import toast from 'react-hot-toast'
 
 interface AddressDetails {
   addressLine1?: string
@@ -133,11 +134,11 @@ export default function GoogleMapPicker({
         },
         (error) => {
           console.error('Error getting current location:', error)
-          alert('Unable to get your current location. Please select manually on the map.')
+          toast.error('Unable to get your current location. Please select manually on the map.')
         }
       )
     } else {
-      alert('Geolocation is not supported by this browser.')
+      toast.error('Geolocation is not supported by this browser.')
     }
   }, [reverseGeocode, onLocationSelect])
 

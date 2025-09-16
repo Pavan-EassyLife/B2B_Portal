@@ -242,7 +242,7 @@ export interface ApprovalFlowItem {
     locationId: number;
     createdAt: string;
     updatedAt: string;
-    B2BBooking: B2BBooking[];
+    B2BBooking: B2BBooking;
 }
 
 export interface ApprovalFlowResponse {
@@ -251,9 +251,8 @@ export interface ApprovalFlowResponse {
 }
 
 export interface ApprovalActionRequest {
-    approvalId: number;
     action: "approve" | "reject";
-    remarks?: string;
+    remarks: string; // Made mandatory
 }
 
 export interface ApprovalActionResponse {
@@ -272,10 +271,10 @@ export async function getApprovalFlow(): Promise<ApprovalFlowResponse> {
     }
 }
 
-// Approve or reject an approval
-export async function handleApprovalAction(actionData: ApprovalActionRequest): Promise<ApprovalActionResponse> {
+// Approve or reject an approval using the specific approval ID in URL
+export async function handleApprovalAction(approvalId: string, actionData: ApprovalActionRequest): Promise<ApprovalActionResponse> {
     try {
-        const response = await api.post<ApprovalActionResponse>('b2b/approval-action', actionData);
+        const response = await api.post<ApprovalActionResponse>(`b2b/take-approval-action/${approvalId}`, actionData);
         return response.data;
     } catch (error) {
         console.error('Error handling approval action:', error);

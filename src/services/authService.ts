@@ -41,6 +41,12 @@ authApi.interceptors.request.use(
 authApi.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle CORS errors
+    if (error.code === 'ERR_NETWORK' || error.message.includes('CORS')) {
+      console.error('CORS Error detected:', error.message)
+      console.error('Make sure your backend CORS is configured properly')
+    }
+
     if (error.response?.status === 401) {
       // Token expired or invalid, clear cookies
       Cookies.remove('b2b_token')

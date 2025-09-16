@@ -10,6 +10,7 @@ import Modal, { ModalBody, ModalFooter, ModalButton } from '@/components/Modal'
 import { Dropdown, Textarea, FormGroup, Input, Checkbox } from '@/components/FormComponents'
 import { ApiResponse, getAddress, getCategories, slotTiming, addAddress, AddAddressRequest, getApprovalFlow, handleApprovalAction, ApprovalFlowItem } from '@/api/categories'
 import GoogleMapPicker from '@/components/GoogleMapPicker'
+import toast from 'react-hot-toast'
 
 // Import types from the API file to ensure consistency
 import type { ServiceCategory, Subcategory, Attribute, Option, ServiceSegment, Address, SlotTimingData } from '@/api/categories'
@@ -26,6 +27,7 @@ export default function DashboardPage() {
   // Modal state
   const [isCreateOrderModalOpen, setIsCreateOrderModalOpen] = useState(false)
   const [isAddAddressModalOpen, setIsAddAddressModalOpen] = useState(false)
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false)
 
   const [categories, setCategories] = useState<ServiceCategory[]>([])
   const [addresses, setAddresses] = useState<Address[]>([])
@@ -34,6 +36,9 @@ export default function DashboardPage() {
   const [selectedLocation, setSelectedLocation] = useState<{ lat: string; lng: string } | null>(null)
   const [providerCardsData, setProviderCardsData] = useState<ProviderCard[]>([])
   const [approvalFlowData, setApprovalFlowData] = useState<ApprovalFlowItem[]>([])
+  const [currentApproval, setCurrentApproval] = useState<{id: string, action: 'approve' | 'reject'} | null>(null)
+  const [approvalRemarks, setApprovalRemarks] = useState('')
+  const [cities, setCities] = useState<LocationDetailsResponse | null>(null)
 
   // Form state
   const [orderForm, setOrderForm] = useState({
@@ -143,7 +148,7 @@ export default function DashboardPage() {
     console.log('Creating order:', orderForm)
     const response = await createOrder(orderForm)
     if(!response.success) {
-      return alert('Failed to create order: ' + response.message)
+      return toast.error('Failed to create order: ' + response.message)
     }
 
     setIsCreateOrderModalOpen(false)
@@ -168,12 +173,31 @@ export default function DashboardPage() {
 
   // Handle Add Address form submission
   const handleAddAddress = async () => {
+    // Form validation
+    if (!addressForm.addressLine1.trim()) {
+      toast.error('Address Line 1 is required')
+      return
+    }
+    if (!addressForm.city.trim()) {
+      toast.error('City is required')
+      return
+    }
+    if (!addressForm.state.trim()) {
+      toast.error('State is required')
+      return
+    }
+    if (!addressForm.pincode.trim()) {
+      toast.error('Pincode is required')
+      return
+    }
+
     try {
       console.log('Adding address:', addressForm)
+      toast.loading('Adding address...', { id: 'add-address' })
       const response = await addAddress(addressForm)
 
       if (response.status) {
-        alert('Address added successfully!')
+        toast.success('Address added successfully!', { id: 'add-address' })
         setIsAddAddressModalOpen(false)
 
         // Reset form
@@ -203,11 +227,11 @@ export default function DashboardPage() {
           setAddresses(addressResponse.data)
         }
       } else {
-        alert('Failed to add address: ' + response.message)
+        toast.error('Failed to add address: ' + response.message, { id: 'add-address' })
       }
     } catch (error) {
       console.error('Error adding address:', error)
-      alert('Error adding address. Please try again.')
+      toast.error('Error adding address. Please try again.', { id: 'add-address' })
     }
   }
 
@@ -227,25 +251,44 @@ export default function DashboardPage() {
     }))
   }
 
-  // Handle approval actions
-  const handleApprovalActionClick = async (approvalId: number, action: 'approve' | 'reject', remarks?: string) => {
+  // Open approval modal with action
+  const openApprovalModal = (approvalId: string, action: 'approve' | 'reject') => {
+    setCurrentApproval({ id: approvalId, action })
+    setApprovalRemarks('')
+    setIsApprovalModalOpen(true)
+  }
+
+  // Handle approval actions with mandatory remarks
+  const handleApprovalActionSubmit = async () => {
+    if (!currentApproval) return
+
+    // Validate remarks are provided
+    if (!approvalRemarks.trim()) {
+      toast.error('Remarks are mandatory for both approve and reject actions')
+      return
+    }
+
     try {
-      const response = await handleApprovalAction({
-        approvalId,
-        action,
-        remarks
+      toast.loading(`${currentApproval.action === 'approve' ? 'Approving' : 'Rejecting'} request...`, { id: `approval-${currentApproval.id}` })
+
+      const response = await handleApprovalAction(currentApproval.id, {
+        action: currentApproval.action,
+        remarks: approvalRemarks.trim()
       })
 
       if (response.success) {
-        alert(`Successfully ${action}d the request!`)
+        toast.success(`Successfully ${currentApproval.action}d the request!`, { id: `approval-${currentApproval.id}` })
+        setIsApprovalModalOpen(false)
+        setCurrentApproval(null)
+        setApprovalRemarks('')
         // Refresh approval flow data
         loadApprovalFlow()
       } else {
-        alert(`Failed to ${action} the request`)
+        toast.error(`Failed to ${currentApproval.action} the request`, { id: `approval-${currentApproval.id}` })
       }
     } catch (error) {
-      console.error(`Error ${action}ing request:`, error)
-      alert(`Error ${action}ing request. Please try again.`)
+      console.error(`Error ${currentApproval.action}ing request:`, error)
+      toast.error(`Error ${currentApproval.action}ing request. Please try again.`, { id: `approval-${currentApproval.id}` })
     }
   }
 
@@ -264,13 +307,53 @@ export default function DashboardPage() {
   // Test getCurrentUser API
   const testGetCurrentUser = async () => {
     try {
+      console.log('Testing getCurrentUser API...')
       const { getCurrentUserToken } = await import('@/api/categories')
       const response = await getCurrentUserToken()
       console.log('Current User Response:', response)
-      alert('Check console for current user data')
-    } catch (error) {
-      console.error('Error fetching current user:', error)
-      alert('Error fetching current user. Check console.')
+      toast.success('✅ Success! Check console for current user data')
+    } catch (error: any) {
+      console.error('❌ Error fetching current user:', error)
+
+      // Detailed error logging for CORS issues
+      if (error.code === 'ERR_NETWORK') {
+        console.error('🚨 Network Error - Likely CORS issue')
+        toast.error('❌ CORS Error: Check console for details. Make sure backend CORS is configured properly.')
+      } else if (error.message?.includes('CORS')) {
+        console.error('🚨 CORS Error detected')
+        toast.error('❌ CORS Error: Check console for details.')
+      } else {
+        toast.error(`❌ Error: ${error.message || 'Unknown error'}. Check console for details.`)
+      }
+    }
+  }
+
+  // Test basic API connectivity
+  const testBasicAPI = async () => {
+    try {
+      console.log('Testing basic API connectivity...')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001/'}health`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        console.log('✅ Basic API connectivity successful')
+        toast.success('✅ Basic API connectivity successful')
+      } else {
+        console.log('⚠️ API responded but with error status:', response.status)
+        toast.error(`⚠️ API responded with status: ${response.status}`)
+      }
+    } catch (error: any) {
+      console.error('❌ Basic API test failed:', error)
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        toast.error('❌ CORS Error: Cannot connect to API. Check backend CORS configuration.')
+      } else {
+        toast.error(`❌ API Test Failed: ${error.message}`)
+      }
     }
   }
 
@@ -313,8 +396,6 @@ export default function DashboardPage() {
       const addressResponse = await getAddress();
       const slotTimingResponse = await slotTiming();
       const locationDetailsResponse = await getLocationDetails("");
-      console.log('Address Response:', addressResponse)
-      console.log('Slot Timing Response:', slotTimingResponse)
 
       if (response.success) {
         setCategories(response.data);
@@ -331,6 +412,7 @@ export default function DashboardPage() {
       if (locationDetailsResponse.success) {
         setLocationDetailsData(locationDetailsResponse);
       }
+
     } catch (error) {
       console.error('Error fetching data:', error);
     }
@@ -340,14 +422,10 @@ export default function DashboardPage() {
 
   const handleChangeCityZone = async (value: string) => {
     setOrderForm(prev => ({ ...prev, locationZone: value }))
-    try {
       const locationDetailsResponse = await getLocationDetails(value);
       if (locationDetailsResponse.success) {
-        setLocationDetailsData(locationDetailsResponse);
+        setCities(locationDetailsResponse);
       }
-    } catch (error) {
-      console.error('Error fetching location details:', error);
-    }
   }
 
  
@@ -512,12 +590,18 @@ export default function DashboardPage() {
                       </svg>
                       Refresh
                     </button>
-                    <button
+                    {/* <button
                       onClick={testGetCurrentUser}
                       className="inline-flex items-center px-3 py-2 border border-blue-300 shadow-sm text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
                       Test User API
                     </button>
+                    <button
+                      onClick={testBasicAPI}
+                      className="inline-flex items-center px-3 py-2 border border-green-300 shadow-sm text-sm leading-4 font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                    >
+                      Test CORS
+                    </button> */}
                   </div>
                 </div>
                 <div className="space-y-4">
@@ -534,16 +618,16 @@ export default function DashboardPage() {
                             </span>
                           </div>
 
-                          {approval.B2BBooking.map((booking) => (
-                            <div key={booking.id} className="mb-3">
+                          {/* {approval.B2BBooking.map((booking) => ( */}
+                            <div  className="mb-3">
                               <h4 className="text-sm font-medium text-gray-900">
-                                {booking.service_name}
+                                {approval.B2BBooking.service_name}
                               </h4>
                               <p className="text-sm text-gray-600">
-                                Order: {booking.order_number}
+                                Order: {approval.B2BBooking.order_number}
                               </p>
                             </div>
-                          ))}
+                          {/* ))} */}
 
                           <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
                             <div>
@@ -571,13 +655,13 @@ export default function DashboardPage() {
 
                         <div className="flex space-x-2 ml-4">
                           <button
-                            onClick={() => handleApprovalActionClick(approval.id, 'approve')}
+                            onClick={() => openApprovalModal(approval.id.toString(), 'approve')}
                             className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                           >
                             Approve
                           </button>
                           <button
-                            onClick={() => handleApprovalActionClick(approval.id, 'reject')}
+                            onClick={() => openApprovalModal(approval.id.toString(), 'reject')}
                             className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                           >
                             Reject
@@ -954,7 +1038,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Dropdown
+              <Dropdown
               label="Location Zone"
               value={orderForm.locationZone}
               onChange={(value) => handleChangeCityZone(value)}
@@ -970,8 +1054,9 @@ export default function DashboardPage() {
               label="City Zone"
               value={orderForm.cityZone}
               onChange={(value) => setOrderForm(prev => ({ ...prev, cityZone: value }))}
+              disabled={!orderForm.locationZone}  
               options={
-                locationDetailsData?.data?.map((card) => ({
+                cities?.data?.map((card) => ({
                   value: card.id,
                   label: card.name
                 })) || []
@@ -982,7 +1067,8 @@ export default function DashboardPage() {
 
                   </div>
 
-            <Dropdown
+                  {/* // # Comment to select provider based on fetched provider cards */}
+            {/* <Dropdown
               label="Priority"
               value={orderForm.priority}
               onChange={(value) => setOrderForm(prev => ({ ...prev, priority: value }))}
@@ -992,7 +1078,7 @@ export default function DashboardPage() {
                 label: card.provider.first_name
                 }))
               }
-            />
+            /> */}
              
           </FormGroup>
         </ModalBody>
@@ -1185,6 +1271,59 @@ export default function DashboardPage() {
             disabled={!addressForm.storeName || !addressForm.contactPerson || !addressForm.addressLine1 || !addressForm.city || !addressForm.state || !addressForm.pincode}
           >
             Add Address
+          </ModalButton>
+        </ModalFooter>
+      </Modal>
+
+      {/* Approval Action Modal */}
+      <Modal
+        isOpen={isApprovalModalOpen}
+        onClose={() => setIsApprovalModalOpen(false)}
+        title={`${currentApproval?.action === 'approve' ? 'Approve' : 'Reject'} Request`}
+      >
+        <ModalBody>
+          <div className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded-md">
+              <p className="text-sm text-gray-600">
+                You are about to <span className={`font-semibold ${currentApproval?.action === 'approve' ? 'text-green-600' : 'text-red-600'}`}>
+                  {currentApproval?.action}
+                </span> this request.
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Remarks are mandatory for both approve and reject actions.
+              </p>
+            </div>
+
+            <FormGroup>
+              <Textarea
+                label="Remarks "
+                value={approvalRemarks}
+                onChange={(value) => setApprovalRemarks(value)}
+                placeholder={`Enter your remarks for ${currentApproval?.action === 'approve' ? 'approving' : 'rejecting'} this request...`}
+                rows={4}
+                required
+              />
+            </FormGroup>
+          </div>
+        </ModalBody>
+
+        <ModalFooter>
+          <ModalButton
+            variant="secondary"
+            onClick={() => {
+              setIsApprovalModalOpen(false)
+              setCurrentApproval(null)
+              setApprovalRemarks('')
+            }}
+          >
+            Cancel
+          </ModalButton>
+          <ModalButton
+            variant={currentApproval?.action === 'approve' ? 'primary' : 'danger'}
+            onClick={handleApprovalActionSubmit}
+            disabled={!approvalRemarks.trim()}
+          >
+            {currentApproval?.action === 'approve' ? 'Approve' : 'Reject'}
           </ModalButton>
         </ModalFooter>
       </Modal>

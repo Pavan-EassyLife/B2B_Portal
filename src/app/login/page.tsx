@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppDispatch, useAppSelector } from '@/store'
 import { loginUser, clearError } from '@/store/authSlice'
+import toast from 'react-hot-toast'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -28,16 +29,20 @@ export default function LoginPage() {
     e.preventDefault()
 
     if (!email || !password) {
+      toast.error('Please enter both email and password')
       return
     }
 
     try {
       const result = await dispatch(loginUser({ email, password }))
       if (loginUser.fulfilled.match(result)) {
+        toast.success('Login successful! Redirecting...')
         router.push('/dashboard')
+      } else if (loginUser.rejected.match(result)) {
+        toast.error(result.payload as string || 'Login failed')
       }
     } catch (error) {
-      // Error is handled by Redux slice
+      toast.error('An unexpected error occurred')
     }
   }
 
