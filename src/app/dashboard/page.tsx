@@ -7,7 +7,7 @@ import { useAppSelector, useAppDispatch } from '@/store'
 import { logoutUser } from '@/store/authSlice'
 import AuthGuard from '@/components/AuthGuard'
 import Modal, { ModalBody, ModalFooter, ModalButton } from '@/components/Modal'
-import { Dropdown, Textarea, FormGroup, Input, Checkbox } from '@/components/FormComponents'
+import { Dropdown, SearchableDropdown, Textarea, FormGroup, Input, Checkbox } from '@/components/FormComponents'
 import { ApiResponse, getAddress, getCategories, slotTiming, addAddress, AddAddressRequest, getApprovalFlow, handleApprovalAction, ApprovalFlowItem } from '@/api/categories'
 import GoogleMapPicker from '@/components/GoogleMapPicker'
 import toast from 'react-hot-toast'
@@ -39,6 +39,10 @@ export default function DashboardPage() {
   const [currentApproval, setCurrentApproval] = useState<{id: string, action: 'approve' | 'reject'} | null>(null)
   const [approvalRemarks, setApprovalRemarks] = useState('')
   const [cities, setCities] = useState<LocationDetailsResponse | null>(null)
+
+  // Loading states
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false)
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false)
 
   // Form state
   const [orderForm, setOrderForm] = useState({
@@ -145,30 +149,44 @@ export default function DashboardPage() {
 
   // Handle form submission
   const handleCreateOrder = async () => {
-    console.log('Creating order:', orderForm)
-    const response = await createOrder(orderForm)
-    if(!response.success) {
-      return toast.error('Failed to create order: ' + response.message)
-    }
+    setIsCreatingOrder(true)
 
-    setIsCreateOrderModalOpen(false)
-    // Reset form
-    setOrderForm({
-      categoryId: '',
-      subcategoryId: '',
-      description: '',
-      filterAttributeId: '',
-      address: '',
-      addressId: '',
-      preferredDate: '',
-      preferredTime: '',
-      priority: '',
-      filterOption: '',
-      segmentOption: '',
-      service_address: '',
-      locationZone: '',
-      cityZone: ''
-    })
+    try {
+      console.log('Creating order:', orderForm)
+      toast.loading('Creating order...', { id: 'creating-order' })
+
+      const response = await createOrder(orderForm)
+
+      if(!response.success) {
+        toast.error('Failed to create order: ' + response.message, { id: 'creating-order' })
+        return
+      }
+
+      setIsCreateOrderModalOpen(false)
+      // Reset form
+      setOrderForm({
+        categoryId: '',
+        subcategoryId: '',
+        description: '',
+        filterAttributeId: '',
+        address: '',
+        addressId: '',
+        preferredDate: '',
+        preferredTime: '',
+        priority: '',
+        filterOption: '',
+        segmentOption: '',
+        service_address: '',
+        locationZone: '',
+        cityZone: ''
+      })
+      toast.success('Order created successfully!', { id: 'creating-order' })
+    } catch (error) {
+      console.error('Error creating order:', error)
+      toast.error('Error creating order', { id: 'creating-order' })
+    } finally {
+      setIsCreatingOrder(false)
+    }
   }
 
   // Handle Add Address form submission
@@ -391,7 +409,11 @@ export default function DashboardPage() {
 
   const handleCreateOrderModalOpen = async () => {
     setIsCreateOrderModalOpen(true)
+    setIsLoadingCategories(true)
+
     try {
+      toast.loading('Loading categories and data...', { id: 'loading-categories' })
+
       const response = await getCategories();
       const addressResponse = await getAddress();
       const slotTimingResponse = await slotTiming();
@@ -399,6 +421,9 @@ export default function DashboardPage() {
 
       if (response.success) {
         setCategories(response.data);
+        toast.success('Categories loaded successfully', { id: 'loading-categories' })
+      } else {
+        toast.error('Failed to load categories', { id: 'loading-categories' })
       }
 
       if (addressResponse.status) {
@@ -411,10 +436,14 @@ export default function DashboardPage() {
 
       if (locationDetailsResponse.success) {
         setLocationDetailsData(locationDetailsResponse);
+        setCities(locationDetailsResponse);
       }
 
     } catch (error) {
       console.error('Error fetching data:', error);
+      toast.error('Error loading data', { id: 'loading-categories' })
+    } finally {
+      setIsLoadingCategories(false)
     }
   }
 
@@ -436,6 +465,32 @@ export default function DashboardPage() {
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
+          {/* Welcome Section */}
+          <div className="bg-primary rounded-xl shadow-lg p-6 mb-8 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold mb-2">
+                  Welcome to EassyLife B2B Portal
+                </h1>
+                <p className="text-white/80 text-lg">
+                  Manage your business operations with ease
+                </p>
+                {user?.company_name && (
+                  <p className="text-white/70 text-sm mt-2">
+                    Company: <span className="font-semibold">{user.company_name}</span>
+                  </p>
+                )}
+              </div>
+              <div className="hidden ">
+                <div className="w-20 h-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 7h10M7 11h10M7 15h10" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {/* <div className="bg-white overflow-hidden shadow rounded-lg">
               <div className="p-5">
@@ -456,7 +511,7 @@ export default function DashboardPage() {
               </div>
             </div> */}
 
-            <div className="bg-white overflow-hidden shadow rounded-lg cursor-pointer hover:shadow-lg transition-shadow"
+            <div className="bg-white overflow-hidden shadow-lg rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-l-4 border-primary"
             onClick={
               () => {
                 router.push('/quotations')
@@ -466,14 +521,14 @@ export default function DashboardPage() {
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-md">
                       <span className="text-white font-semibold">📋</span>
                     </div>
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">View Quotations</dt>
-                      <dd className="text-lg font-medium text-gray-900">All Quotations</dd>
+                      <dt className="text-sm font-medium text-gray-600 truncate">View Quotations</dt>
+                      <dd className="text-lg font-semibold text-gray-900">All Quotations</dd>
                     </dl>
                   </div>
                 </div>
@@ -501,20 +556,27 @@ export default function DashboardPage() {
             </div>
 
                <div
-                className="bg-white overflow-hidden shadow rounded-lg cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={handleCreateOrderModalOpen}
+                className={`bg-white overflow-hidden shadow-lg rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-l-4 border-primary ${isLoadingCategories ? 'opacity-75 cursor-not-allowed' : ''}`}
+                onClick={isLoadingCategories ? undefined : handleCreateOrderModalOpen}
               >
                 <div className="p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                        <span className="text-white font-semibold">+</span>
+                      <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-md">
+                        {isLoadingCategories ? (
+                          <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : (
+                          <span className="text-white font-semibold">+</span>
+                        )}
                       </div>
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">Order Creation</dt>
-                        <dd className="text-lg font-medium text-gray-900">
+                        <dt className="text-sm font-medium text-gray-600 truncate">Order Creation</dt>
+                        <dd className="text-lg font-semibold text-gray-900">
                           Create Order
                         </dd>
                       </dl>
@@ -524,20 +586,20 @@ export default function DashboardPage() {
               </div>
 
                <div
-                className="bg-white overflow-hidden shadow rounded-lg cursor-pointer hover:shadow-lg transition-shadow"
+                className="bg-white overflow-hidden shadow-lg rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-l-4 border-primary"
                 onClick={() => setIsAddAddressModalOpen(true)}
               >
                 <div className="p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                      <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-md">
                         <span className="text-white font-semibold">+</span>
                       </div>
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">Add Address</dt>
-                        <dd className="text-lg font-medium text-gray-900">
+                        <dt className="text-sm font-medium text-gray-600 truncate">Add Address</dt>
+                        <dd className="text-lg font-semibold text-gray-900">
                           Address
                         </dd>
                       </dl>
@@ -547,22 +609,22 @@ export default function DashboardPage() {
               </div>
 
               <div
-                className="bg-white overflow-hidden shadow rounded-lg cursor-pointer hover:shadow-lg transition-shadow"
+                className="bg-white overflow-hidden shadow-lg rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-l-4 border-primary"
                 onClick={() => router.push('/orders')}
               >
                 <div className="p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-md">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                       </div>
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">View Orders</dt>
-                        <dd className="text-lg font-medium text-gray-900">
+                        <dt className="text-sm font-medium text-gray-600 truncate">View Orders</dt>
+                        <dd className="text-lg font-semibold text-gray-900">
                           Orders
                         </dd>
                       </dl>
@@ -656,13 +718,13 @@ export default function DashboardPage() {
                         <div className="flex space-x-2 ml-4">
                           <button
                             onClick={() => openApprovalModal(approval.id.toString(), 'approve')}
-                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm leading-4 font-semibold rounded-lg text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-md transition-all duration-200 transform hover:scale-105"
                           >
                             Approve
                           </button>
                           <button
                             onClick={() => openApprovalModal(approval.id.toString(), 'reject')}
-                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                            className="inline-flex items-center px-4 py-2 border border-primary text-sm leading-4 font-semibold rounded-lg text-primary bg-white hover:bg-primary hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-md transition-all duration-200 transform hover:scale-105"
                           >
                             Reject
                           </button>
@@ -712,7 +774,7 @@ export default function DashboardPage() {
           <FormGroup>
             <div className='flex flex-col gap-4 md:flex-row md:gap-6'>
               <div className='flex-1'>
-                <Dropdown
+                <SearchableDropdown
                   label="Category"
                   value={orderForm.categoryId}
                   onChange={(value) => {
@@ -724,22 +786,25 @@ export default function DashboardPage() {
                     }))
                   }}
                   options={
-                    categories.map(category => ({
+                    isLoadingCategories ? [] : categories.map(category => ({
                       value: category.id,
                       label: category.name
                     }))
                   }
+                  placeholder={isLoadingCategories ? "Loading categories..." : "Select a category"}
+                  searchPlaceholder="Search categories..."
+                  disabled={isLoadingCategories}
                   required
                 />
               </div>
 
               <div className='flex-1'>
-                <Dropdown
+                <SearchableDropdown
                   label="Subcategory"
                   value={orderForm.subcategoryId}
                   onChange={(value) => setOrderForm(prev => ({ ...prev, subcategoryId: value, filterAttributeId: '', segmentOption: '' }))}
                   options={
-                    orderForm.categoryId
+                    isLoadingCategories ? [] : orderForm.categoryId
                       ? categories
                           .find(cat => cat.id === orderForm.categoryId)
                           ?.subcategories?.map(subcat => ({
@@ -748,7 +813,9 @@ export default function DashboardPage() {
                           })) || []
                       : []
                   }
-                  disabled={!orderForm.categoryId}
+                  placeholder={isLoadingCategories ? "Loading..." : !orderForm.categoryId ? "Select category first" : "Select a subcategory"}
+                  searchPlaceholder="Search subcategories..."
+                  disabled={!orderForm.categoryId || isLoadingCategories}
                   required
                 />
               </div>
@@ -1093,9 +1160,19 @@ export default function DashboardPage() {
           <ModalButton
             variant="primary"
             onClick={handleCreateOrder}
-            disabled={!orderForm.categoryId || !orderForm.subcategoryId  || !orderForm.address}
+            disabled={!orderForm.categoryId || !orderForm.subcategoryId  || !orderForm.address || isCreatingOrder || isLoadingCategories}
           >
-            Create Order
+            {isCreatingOrder ? (
+              <div className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Creating Order...
+              </div>
+            ) : (
+              'Create Order'
+            )}
           </ModalButton>
         </ModalFooter>
       </Modal>

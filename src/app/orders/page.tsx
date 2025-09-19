@@ -4,13 +4,15 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppSelector } from '@/store'
 import AuthGuard from '@/components/AuthGuard'
-import { getOrders, B2BOrder } from '@/api/categories'
+import { getOrders, B2BOrder, downloadInvoice } from '@/api/categories'
+import toast from 'react-hot-toast'
 
 const OrdersPage = () => {
   const router = useRouter()
   const [orders, setOrders] = useState<B2BOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
+  const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -32,6 +34,30 @@ const OrdersPage = () => {
 
     fetchOrders()
   }, [])
+
+  const handleDownloadInvoice = async (orderId: string, event: React.MouseEvent) => {
+    event.stopPropagation() // Prevent triggering the order click
+
+    try {
+      setDownloadingInvoice(orderId)
+      toast.loading('Downloading invoice...', { id: 'download-invoice' })
+
+      const response = await downloadInvoice(orderId)
+
+      if (response.success) {
+        // Open the invoice PDF in a new tab
+        window.open(response.data.invoice_file_path, '_blank')
+        toast.success(`Invoice ${response.data.invoice_number} downloaded successfully`, { id: 'download-invoice' })
+      } else {
+        toast.error('Failed to download invoice', { id: 'download-invoice' })
+      }
+    } catch (error) {
+      console.error('Error downloading invoice:', error)
+      toast.error('Error downloading invoice', { id: 'download-invoice' })
+    } finally {
+      setDownloadingInvoice(null)
+    }
+  }
 
   const getStatusBadge = (status: string) => {
     const statusColors = {
@@ -134,7 +160,11 @@ const OrdersPage = () => {
               <div className="px-4 py-5 sm:p-6">
                 <div className="space-y-6">
                   {orders.map((order) => (
-                    <div key={order.id} className="border border-gray-200 rounded-lg p-6">
+                    <div
+                      key={order.id}
+                      className="border border-gray-200 rounded-lg p-6 cursor-pointer hover:shadow-lg hover:border-primary transition-all duration-200 transform hover:scale-[1.02]"
+                      onClick={() => router.push(`/order/${order.id}`)}
+                    >
                       <div className="flex justify-between items-start mb-4">
                         <div>
                           <h3 className="text-lg font-medium text-gray-900">
@@ -144,10 +174,16 @@ const OrdersPage = () => {
                             Order: {order.order_number}
                           </p>
                         </div>
-                        <div className="flex space-x-2">
-                          <>sada</>{order.b2b_approvals && getStatusBadge(order.b2b_approvals.status)}
+                        <div className="flex items-center space-x-2">
+                          {order.b2b_approvals && getStatusBadge(order.b2b_approvals.status)}
                           {getStatusBadge(order.status)}
                           {getStatusBadge(order.b2b_status)}
+                          <div className="flex items-center text-primary hover:text-primary/80 transition-colors">
+                            <span className="text-sm font-medium mr-1">View Details</span>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
                         </div>
                       </div>
 
@@ -252,6 +288,37 @@ const OrdersPage = () => {
                         <div className="border-t border-gray-200 pt-4 mt-4">
                           <p className="text-sm font-medium text-gray-700">Notes:</p>
                           <p className="text-sm text-gray-600 mt-1">{order.notes}</p>
+                        </div>
+                      )}
+
+                      {/* Download Invoice Button */}
+                      {(order.invoice_status === 'generated' || order.invoice_status === 'sent') && (
+                        <div className="border-t border-gray-200 pt-4 mt-4">
+                          <button
+                            onClick={(e) => handleDownloadInvoice(order.id, e)}
+                            disabled={downloadingInvoice === order.id}
+                            className="inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
+                          >
+                            {downloadingInvoice === order.id ? (
+                              <>
+                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Downloading...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Download Invoice
+                              </>
+                            )}
+                          </button>
+                          <span className="ml-3 text-sm text-gray-600">
+                            Status: <span className="font-medium capitalize">{order.invoice_status}</span>
+                          </span>
                         </div>
                       )}
 

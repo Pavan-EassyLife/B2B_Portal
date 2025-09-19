@@ -383,3 +383,63 @@ export async function getCurrentUserToken(): Promise<CurrentUserResponse> {
         throw error;
     }
 }
+
+// Order Details Interfaces
+export interface OrderAttachment {
+    id: string;
+    b2b_booking_id: string;
+    provider_id: string;
+    attachment_type: "before_image" | "after_image";
+    file_name: string;
+    file_url: string;
+    file_key: string;
+    file_size: number;
+    mime_type: string;
+    uploaded_at: string;
+    expires_at: string;
+    is_archived: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface OrderDetailsResponse {
+    success: boolean;
+    data: OrderAttachment[];
+}
+
+// Get order details with attachments
+export async function getOrderDetails(orderId: string): Promise<OrderDetailsResponse> {
+    try {
+        const response = await api.get<OrderDetailsResponse>(`b2b/order/details?id=${orderId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching order details:', error);
+        throw error;
+    }
+}
+
+// Invoice Download Interfaces
+export interface InvoiceData {
+    id: string;
+    b2b_booking_id: number;
+    invoice_file_path: string;
+    invoice_number: string;
+    payment_status: string;
+    payment_terms: string;
+}
+
+export interface InvoiceDownloadResponse {
+    success: boolean;
+    data: InvoiceData;
+}
+
+// Download invoice for order
+export async function downloadInvoice(orderId: string): Promise<InvoiceDownloadResponse> {
+    try {
+        const response = await api.get<InvoiceDownloadResponse>(`b2b/order/download-invoice?id=${orderId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error downloading invoice:', error);
+        throw error;
+    }
+}
