@@ -535,18 +535,18 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="bg-white overflow-hidden shadow-lg rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-l-4 border-green-500">
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className={`w-8 h-8 ${user?.status === 'active' ? 'bg-green-500' : 'bg-gray-400'} rounded-full flex items-center justify-center`}>
+                    <div className={`w-10 h-10 ${user?.status === 'active' ? 'bg-green-500' : 'bg-gray-400'} rounded-full flex items-center justify-center shadow-md`}>
                       <span className="text-white font-semibold">★</span>
                     </div>
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">Account Status</dt>
-                      <dd className="text-lg font-medium text-gray-900">
+                      <dt className="text-sm font-medium text-gray-600 truncate">Account Status</dt>
+                      <dd className="text-lg font-semibold text-gray-900">
                         {user?.status === 'active' ? 'Active' : 'Inactive'}
                       </dd>
                     </dl>
@@ -626,6 +626,31 @@ export default function DashboardPage() {
                         <dt className="text-sm font-medium text-gray-600 truncate">View Orders</dt>
                         <dd className="text-lg font-semibold text-gray-900">
                           Orders
+                        </dd>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className="bg-white overflow-hidden shadow-lg rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-l-4 border-primary"
+                onClick={() => router.push('/roles')}
+              >
+                <div className="p-5">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-md">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-sm font-medium text-gray-600 truncate">Team Management</dt>
+                        <dd className="text-lg font-semibold text-gray-900">
+                          Team Members
                         </dd>
                       </dl>
                     </div>
