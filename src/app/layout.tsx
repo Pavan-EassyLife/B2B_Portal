@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EassyLife B2B Portal",
-  description: "EassyLife B2B Portal - Streamline your business operations with ease",
+  title: "Eassylife B2B Portal",
+  description: "Eassylife B2B Portal - Streamline your business operations with ease",
 };
 
 export default function RootLayout({

@@ -85,8 +85,8 @@ export default function AuthGuard({ children, fallback }: AuthGuardProps) {
                 </div>
                 {/* Brand and Portal Name */}
                 <div className="flex flex-col">
-                  <h1 className="text-2xl font-bold text-gray-900">EassyLife</h1>
-                  <p className="text-sm text-gray-600 font-medium">B2B Portal Dashboard</p>
+                  {/* <h1 className="text-2xl font-bold text-gray-900">Eassylife</h1> */}
+                  <h1 className="text-2xl font-bold text-gray-900">B2B Portal Dashboard</h1>
                 </div>
               </div>
               <div className="flex items-center space-x-6">

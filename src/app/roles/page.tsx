@@ -200,7 +200,7 @@ const RolesPage = () => {
                 roleId: newRoleId
             }
 
-            const response = await api.put<RoleUpdateResponse>('/b2b/roles/update', updateData)
+            const response = await api.put<RoleUpdateResponse>('/b2b/roles/user-role', updateData)
 
             console.log('Role Update Response:', response.data)
 

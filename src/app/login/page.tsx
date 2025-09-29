@@ -57,12 +57,12 @@ export default function LoginPage() {
             <img
               className="h-16 w-auto"
               src="/eassylife_logo.png"
-              alt="EassyLife Logo"
+              alt="Eassylife Logo"
             />
           </div>
 
           {/* Brand Name */}
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">EassyLife</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Eassylife</h1>
           <p className="text-lg text-gray-600 font-medium mb-6">B2B Portal</p>
 
           {/* Sign In Header */}
