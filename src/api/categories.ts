@@ -370,7 +370,7 @@ export interface CurrentUser {
 export interface CurrentUserResponse {
     status: boolean;
     message: string;
-    data: CurrentUser;
+    data?: CurrentUser; // Make data optional since it won't be present when status is false
 }
 
 // Get current user from token

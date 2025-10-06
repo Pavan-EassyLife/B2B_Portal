@@ -11,9 +11,10 @@ export const loginUser = createAsyncThunk(
       const response = await authService.login(credentials)
       if (response.status && response.data) {
         // After login, fetch the current user data from the API
-        const currentUser = await authService.getCurrentUser()
+        // const currentUser = await authService.getCurrentUser()
+        
         return {
-          user: currentUser,
+          user: response.data.user,
           token: response.data.user.id // Using user ID as token
         }
       }

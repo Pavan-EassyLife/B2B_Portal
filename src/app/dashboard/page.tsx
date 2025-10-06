@@ -21,6 +21,9 @@ import { createOrder, getLocationDetails, LocationDetailsResponse } from '@/api/
 
 export default function DashboardPage() {
   const { user, isAuthenticated, isLoading } = useAppSelector((state) => state.auth)
+
+
+
   const dispatch = useAppDispatch()
   const router = useRouter()
 
@@ -322,58 +325,9 @@ export default function DashboardPage() {
     }
   }
 
-  // Test getCurrentUser API
-  const testGetCurrentUser = async () => {
-    try {
-      console.log('Testing getCurrentUser API...')
-      const { getCurrentUserToken } = await import('@/api/categories')
-      const response = await getCurrentUserToken()
-      console.log('Current User Response:', response)
-      toast.success('✅ Success! Check console for current user data')
-    } catch (error: any) {
-      console.error('❌ Error fetching current user:', error)
 
-      // Detailed error logging for CORS issues
-      if (error.code === 'ERR_NETWORK') {
-        console.error('🚨 Network Error - Likely CORS issue')
-        toast.error('❌ CORS Error: Check console for details. Make sure backend CORS is configured properly.')
-      } else if (error.message?.includes('CORS')) {
-        console.error('🚨 CORS Error detected')
-        toast.error('❌ CORS Error: Check console for details.')
-      } else {
-        toast.error(`❌ Error: ${error.message || 'Unknown error'}. Check console for details.`)
-      }
-    }
-  }
 
-  // Test basic API connectivity
-  const testBasicAPI = async () => {
-    try {
-      console.log('Testing basic API connectivity...')
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001/'}health`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
 
-      if (response.ok) {
-        console.log('✅ Basic API connectivity successful')
-        toast.success('✅ Basic API connectivity successful')
-      } else {
-        console.log('⚠️ API responded but with error status:', response.status)
-        toast.error(`⚠️ API responded with status: ${response.status}`)
-      }
-    } catch (error: any) {
-      console.error('❌ Basic API test failed:', error)
-      if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        toast.error('❌ CORS Error: Cannot connect to API. Check backend CORS configuration.')
-      } else {
-        toast.error(`❌ API Test Failed: ${error.message}`)
-      }
-    }
-  }
 
   if (isLoading) {
     return (
@@ -535,7 +489,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-white overflow-hidden shadow-lg rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-l-4 border-green-500">
+            {/* <div className="bg-white overflow-hidden shadow-lg rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-l-4 border-green-500">
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
@@ -553,7 +507,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
 
                <div
                 className={`bg-white overflow-hidden shadow-lg rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-l-4 border-primary ${isLoadingCategories ? 'opacity-75 cursor-not-allowed' : ''}`}
